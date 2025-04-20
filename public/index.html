@@ -331,14 +331,14 @@
 
         // Load system prompt when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            // Set the initial system prompt if available
-            if (typeof initialSystemPrompt !== 'undefined') {
-                // Replace literal \n with actual newlines for display
-                const displayPrompt = initialSystemPrompt.replace(/\\n/g, '\n');
-                document.getElementById('system-prompt-text').value = displayPrompt;
+            // Try to load from localStorage first
+            const savedPrompt = localStorage.getItem('systemPrompt');
+            if (savedPrompt) {
+                // Convert \n to actual newlines for display
+                document.getElementById('system-prompt-text').value = savedPrompt.replace(/\\n/g, '\n');
             } else {
-                // Fallback to loading from API
-                loadSystemPrompt();
+                // If no saved prompt, use the default
+                document.getElementById('system-prompt-text').value = defaultSystemPrompt.replace(/\\n/g, '\n');
             }
             
             // Load models
@@ -349,6 +349,8 @@
             e.preventDefault();
             const message = messageInput.value.trim();
             const model = modelSelect.value;
+            // Convert actual newlines to \n for API
+            const systemPrompt = document.getElementById('system-prompt-text').value.replace(/\n/g, '\\n');
             if (!message) return;
 
             // Add user message to chat
@@ -370,6 +372,7 @@
                     body: JSON.stringify({ 
                         message, 
                         model,
+                        systemPrompt,
                         options: {
                             model: model
                         }
@@ -465,9 +468,11 @@
                 const response = await fetch('/api/system-prompt');
                 if (response.ok) {
                     const data = await response.json();
-                    // Replace literal \n with actual newlines for display
+                    // Convert \n to actual newlines for display
                     const displayPrompt = data.prompt.replace(/\\n/g, '\n');
                     document.getElementById('system-prompt-text').value = displayPrompt;
+                    // Save to localStorage with \n format
+                    localStorage.setItem('systemPrompt', data.prompt);
                 }
             } catch (error) {
                 console.error('Error loading system prompt:', error);
@@ -476,22 +481,11 @@
 
         async function saveSystemPrompt() {
             const prompt = document.getElementById('system-prompt-text').value;
-            try {
-                const response = await fetch('/api/system-prompt', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ prompt }),
-                });
-                if (!response.ok) {
-                    throw new Error('Failed to save system prompt');
-                }
-                alert('System prompt saved successfully');
-            } catch (error) {
-                console.error('Error saving system prompt:', error);
-                alert('Failed to save system prompt');
-            }
+            // Convert actual newlines to \n for storage
+            const formattedPrompt = prompt.replace(/\n/g, '\\n');
+            // Save to localStorage
+            localStorage.setItem('systemPrompt', formattedPrompt);
+            alert('System prompt saved successfully');
         }
 
         async function resetSystemPrompt() {
@@ -501,7 +495,11 @@
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    document.getElementById('system-prompt-text').value = data.prompt;
+                    // Convert \n to actual newlines for display
+                    const displayPrompt = data.prompt.replace(/\\n/g, '\n');
+                    document.getElementById('system-prompt-text').value = displayPrompt;
+                    // Save to localStorage with \n format
+                    localStorage.setItem('systemPrompt', data.prompt);
                     alert('System prompt reset to default');
                 }
             } catch (error) {

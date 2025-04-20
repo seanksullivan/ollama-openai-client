@@ -11,33 +11,22 @@ const port = 3000;
 const client = new OllamaClient();
 
 // Get the default system prompt from .env
-const defaultSystemPrompt = process.env.SYSTEM_PROMPT || '';
-
-// Path to store the custom system prompt
-const systemPromptPath = path.join(__dirname, 'system-prompt.txt');
-
-// Ensure the system prompt file exists
-if (!fs.existsSync(systemPromptPath)) {
-    fs.writeFileSync(systemPromptPath, defaultSystemPrompt);
-}
+const defaultSystemPrompt = process.env.SYSTEM_PROMPT || 'You are a helpful AI assistant.';
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve the main page with embedded system prompt
+// Serve the main page with embedded default system prompt
 app.get('/', ((req: Request, res: Response) => {
     const indexPath = path.join(__dirname, '../public/index.html');
     let html = fs.readFileSync(indexPath, 'utf8');
     
-    // Read the current system prompt
-    const systemPrompt = fs.readFileSync(systemPromptPath, 'utf8');
-    
-    // Add the system prompt to the HTML
+    // Add the default system prompt to the HTML
     html = html.replace(
         '<script>',
         `<script>
-            // Initialize system prompt
-            const initialSystemPrompt = ${JSON.stringify(systemPrompt)};
+            // Initialize default system prompt
+            const defaultSystemPrompt = ${JSON.stringify(defaultSystemPrompt)};
         </script>
         <script>`
     );
@@ -45,45 +34,14 @@ app.get('/', ((req: Request, res: Response) => {
     res.send(html);
 }) as RequestHandler);
 
-// Get current system prompt
+// Get default system prompt
 app.get('/api/system-prompt', ((req: Request, res: Response) => {
-    try {
-        const prompt = fs.readFileSync(systemPromptPath, 'utf8');
-        res.json({ prompt });
-    } catch (error) {
-        console.error('Error reading system prompt:', error);
-        res.status(500).json({ error: 'Failed to read system prompt' });
-    }
-}) as RequestHandler);
-
-// Update system prompt
-app.post('/api/system-prompt', ((req: Request, res: Response) => {
-    try {
-        const { prompt } = req.body;
-        if (!prompt) {
-            return res.status(400).json({ error: 'Prompt is required' });
-        }
-        // Replace actual newlines with \n for storage
-        const formattedPrompt = prompt.replace(/\n/g, '\\n');
-        fs.writeFileSync(systemPromptPath, formattedPrompt);
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Error saving system prompt:', error);
-        res.status(500).json({ error: 'Failed to save system prompt' });
-    }
+    res.json({ prompt: defaultSystemPrompt });
 }) as RequestHandler);
 
 // Reset system prompt to default
 app.post('/api/system-prompt/reset', ((req: Request, res: Response) => {
-    try {
-        // Replace actual newlines with \n for storage
-        const formattedPrompt = defaultSystemPrompt.replace(/\n/g, '\\n');
-        fs.writeFileSync(systemPromptPath, formattedPrompt);
-        res.json({ prompt: formattedPrompt });
-    } catch (error) {
-        console.error('Error resetting system prompt:', error);
-        res.status(500).json({ error: 'Failed to reset system prompt' });
-    }
+    res.json({ prompt: defaultSystemPrompt });
 }) as RequestHandler);
 
 app.get('/api/models', (async (req: Request, res: Response) => {
@@ -98,12 +56,11 @@ app.get('/api/models', (async (req: Request, res: Response) => {
 
 app.post('/api/chat', (async (req: Request, res: Response) => {
     try {
-        const { message, model, options } = req.body;
-        const systemPrompt = fs.readFileSync(systemPromptPath, 'utf8');
+        const { message, model, options, systemPrompt } = req.body;
         const response = await client.createChatCompletion([
             { 
                 role: 'system', 
-                content: systemPrompt
+                content: systemPrompt || defaultSystemPrompt
             },
             { role: 'user', content: message }
         ], { ...options, model });
