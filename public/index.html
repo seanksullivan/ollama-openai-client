@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ollama Chat Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-width: 90%;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: auto;
+            margin-right: 0;
+        }
+        .assistant-message {
+            background-color: #f5f5f5;
+            margin-right: auto;
+            margin-left: 0;
+        }
+        .assistant-message pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 10px 0;
+            max-width: 100%;
+        }
+        .assistant-message code {
+            background-color: #f0f0f0;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .assistant-message p {
+            margin: 10px 0;
+        }
+        .assistant-message ul, .assistant-message ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .assistant-message li {
+            margin: 5px 0;
+        }
+        #chat-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        #message-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 24px;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #1976d2;
+        }
+        #chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            scroll-behavior: smooth;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .model-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .system-prompt-container {
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .system-prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 5px;
+        }
+        .system-prompt-header:hover {
+            background-color: #e0e0e0;
+            border-radius: 4px;
+        }
+        .system-prompt-content {
+            display: none;
+            margin-top: 10px;
+        }
+        .system-prompt-content.expanded {
+            display: block;
+        }
+        #system-prompt-text {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+        .system-prompt-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        #model-select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 300px;
+            font-family: monospace;
+            font-size: 16px;
+        }
+        .model-info {
+            font-size: 0.9em;
+            color: #666;
+            flex: 1;
+            text-align: right;
+        }
+        .token-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            text-align: right;
+            padding: 0 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .token-stats {
+            display: flex;
+            gap: 20px;
+        }
+        .loading-indicator {
+            display: none;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .progress-bar {
+            height: 4px;
+            background-color: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #2196f3;
+            width: 0%;
+            animation: progress 1.5s ease-in-out infinite;
+        }
+        @keyframes progress {
+            0% {
+                width: 0%;
+                margin-left: 0;
+            }
+            50% {
+                width: 100%;
+                margin-left: 0;
+            }
+            100% {
+                width: 0%;
+                margin-left: 100%;
+            }
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>Ollama Chat</h1>
+        <div class="controls">
+            <div class="model-controls">
+                <select id="model-select">
+                    <option value="">Loading models...</option>
+                </select>
+                <div id="model-info" class="model-info"></div>
+            </div>
+            <div class="system-prompt-container">
+                <div class="system-prompt-header" onclick="toggleSystemPrompt()">
+                    <span>System Prompt</span>
+                    <span id="system-prompt-toggle">▼</span>
+                </div>
+                <div class="system-prompt-content" id="system-prompt-content">
+                    <textarea id="system-prompt-text"></textarea>
+                    <div class="system-prompt-actions">
+                        <button onclick="saveSystemPrompt()">Save</button>
+                        <button onclick="resetSystemPrompt()">Reset</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <form id="chat-form">
+            <input type="text" id="message-input" placeholder="Type your message here..." required>
+            <button type="submit" id="send-button">Send</button>
+        </form>
+        <div id="loading-indicator" class="loading-indicator">
+            <div>Generating response...</div>
+            <div class="progress-bar">
+                <div class="progress-bar-fill"></div>
+            </div>
+        </div>
+        <div id="chat-history"></div>
+    </div>
+
+    <script>
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        const chatHistory = document.getElementById('chat-history');
+        const modelSelect = document.getElementById('model-select');
+        const modelInfo = document.getElementById('model-info');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const sendButton = document.getElementById('send-button');
+
+        function setLoading(isLoading) {
+            loadingIndicator.style.display = isLoading ? 'block' : 'none';
+            sendButton.disabled = isLoading;
+            messageInput.disabled = isLoading;
+        }
+
+        // Load available models
+        async function loadModels() {
+            try {
+                const response = await fetch('/api/models');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                modelSelect.innerHTML = '';
+                if (data.models && data.models.length > 0) {
+                    // Sort models alphabetically by name
+                    const sortedModels = [...data.models].sort((a, b) => 
+                        a.name.localeCompare(b.name)
+                    );
+                    
+                    sortedModels.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.name;
+                        option.textContent = `${model.name} (${model.parameterSize})`;
+                        option.dataset.size = model.size;
+                        option.dataset.family = model.family;
+                        option.dataset.parameterSize = model.parameterSize;
+                        modelSelect.appendChild(option);
+                    });
+                    updateModelInfo(modelSelect.options[0]);
+                } else {
+                    modelSelect.innerHTML = '<option value="">No models available</option>';
+                    modelInfo.textContent = '';
+                }
+            } catch (error) {
+                console.error('Error loading models:', error);
+                modelSelect.innerHTML = '<option value="">Error: Could not load models. Please check if Ollama is running.</option>';
+                modelInfo.textContent = '';
+            }
+        }
+
+        modelSelect.addEventListener('change', (e) => {
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            updateModelInfo(selectedOption);
+        });
+
+        function updateModelInfo(option) {
+            if (option && option.value) {
+                modelInfo.textContent = `Family: ${option.dataset.family} | Size: ${option.dataset.size}`;
+            } else {
+                modelInfo.textContent = '';
+            }
+        }
+
+        // Load system prompt when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set the initial system prompt if available
+            if (typeof initialSystemPrompt !== 'undefined') {
+                // Replace literal \n with actual newlines for display
+                const displayPrompt = initialSystemPrompt.replace(/\\n/g, '\n');
+                document.getElementById('system-prompt-text').value = displayPrompt;
+            } else {
+                // Fallback to loading from API
+                loadSystemPrompt();
+            }
+            
+            // Load models
+            loadModels();
+        });
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            const model = modelSelect.value;
+            if (!message) return;
+
+            // Add user message to chat
+            addMessage('user', message);
+            messageInput.value = '';
+            
+            // Show loading indicator
+            setLoading(true);
+            
+            // Start timing
+            const startTime = performance.now();
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        message, 
+                        model,
+                        options: {
+                            model: model
+                        }
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                // Calculate duration
+                const duration = performance.now() - startTime;
+                addMessage('assistant', data.choices[0].message.content, data.usage, duration);
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('assistant', 'Sorry, there was an error processing your request.');
+            } finally {
+                // Hide loading indicator
+                setLoading(false);
+            }
+        });
+
+        function addMessage(role, content, usage = null, duration = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}-message`;
+            
+            if (role === 'assistant') {
+                const container = document.createElement('div');
+                container.className = 'assistant-message-container';
+                
+                // Format the content
+                const formattedContent = formatMessage(content);
+                container.innerHTML = formattedContent;
+                
+                // Add token info if available
+                if (usage && duration) {
+                    const tokenInfo = document.createElement('div');
+                    tokenInfo.className = 'token-info';
+                    
+                    const tokenStats = document.createElement('div');
+                    tokenStats.className = 'token-stats';
+                    
+                    // Calculate tokens per second
+                    const tokensPerSecond = (usage.total_tokens / (duration / 1000)).toFixed(2);
+                    
+                    tokenStats.innerHTML = `
+                        <span>Model: ${modelSelect.value}</span>
+                        <span>Tokens: ${usage.total_tokens}</span>
+                        <span>Speed: ${tokensPerSecond} tokens/s</span>
+                        <span>Time: ${(duration / 1000).toFixed(2)}s</span>
+                    `;
+                    
+                    tokenInfo.appendChild(tokenStats);
+                    container.appendChild(tokenInfo);
+                }
+                
+                messageDiv.appendChild(container);
+            } else {
+                messageDiv.textContent = content;
+            }
+            
+            chatHistory.appendChild(messageDiv);
+            
+            // Scroll to the new message with smooth behavior
+            messageDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+
+        function formatMessage(content) {
+            // Replace code blocks
+            content = content.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            
+            // Replace inline code
+            content = content.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            // Replace newlines with <br>
+            content = content.replace(/\n/g, '<br>');
+            
+            // Replace bullet points
+            content = content.replace(/^\s*[-*]\s+(.+)$/gm, '<li>$1</li>');
+            content = content.replace(/(<li>.*<\/li>)+/g, '<ul>$&</ul>');
+            
+            // Replace numbered lists
+            content = content.replace(/^\s*\d+\.\s+(.+)$/gm, '<li>$1</li>');
+            content = content.replace(/(<li>.*<\/li>)+/g, '<ol>$&</ol>');
+            
+            return content;
+        }
+
+        // System prompt management
+        async function loadSystemPrompt() {
+            try {
+                const response = await fetch('/api/system-prompt');
+                if (response.ok) {
+                    const data = await response.json();
+                    // Replace literal \n with actual newlines for display
+                    const displayPrompt = data.prompt.replace(/\\n/g, '\n');
+                    document.getElementById('system-prompt-text').value = displayPrompt;
+                }
+            } catch (error) {
+                console.error('Error loading system prompt:', error);
+            }
+        }
+
+        async function saveSystemPrompt() {
+            const prompt = document.getElementById('system-prompt-text').value;
+            try {
+                const response = await fetch('/api/system-prompt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt }),
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to save system prompt');
+                }
+                alert('System prompt saved successfully');
+            } catch (error) {
+                console.error('Error saving system prompt:', error);
+                alert('Failed to save system prompt');
+            }
+        }
+
+        async function resetSystemPrompt() {
+            try {
+                const response = await fetch('/api/system-prompt/reset', {
+                    method: 'POST',
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('system-prompt-text').value = data.prompt;
+                    alert('System prompt reset to default');
+                }
+            } catch (error) {
+                console.error('Error resetting system prompt:', error);
+                alert('Failed to reset system prompt');
+            }
+        }
+
+        function toggleSystemPrompt() {
+            const content = document.getElementById('system-prompt-content');
+            const toggle = document.getElementById('system-prompt-toggle');
+            content.classList.toggle('expanded');
+            toggle.textContent = content.classList.contains('expanded') ? '▲' : '▼';
+        }
+    </script>
+</body>
+</html> 
