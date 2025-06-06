@@ -85,6 +85,12 @@
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 16px;
+            resize: none;
+            min-height: 50px;
+            max-height: 200px;
+            overflow-y: auto;
+            line-height: 1.4;
+            font-family: inherit;
         }
         button {
             padding: 12px 24px;
@@ -256,7 +262,7 @@
             </div>
         </div>
         <form id="chat-form">
-            <input type="text" id="message-input" placeholder="Type your message here..." required>
+            <textarea id="message-input" placeholder="Type your message here... (Shift+Enter for new line)" required></textarea>
             <button type="submit" id="send-button">Send</button>
         </form>
         <div id="loading-indicator" class="loading-indicator">
@@ -276,6 +282,23 @@
         const modelInfo = document.getElementById('model-info');
         const loadingIndicator = document.getElementById('loading-indicator');
         const sendButton = document.getElementById('send-button');
+
+        // Initialize conversation history
+        let conversationHistory = [];
+
+        // Try to load conversation history from localStorage
+        try {
+            const savedHistory = localStorage.getItem('chatHistory');
+            if (savedHistory) {
+                conversationHistory = JSON.parse(savedHistory);
+                // Replay the saved messages in the UI
+                conversationHistory.forEach(msg => {
+                    addMessage(msg.role, msg.content, msg.usage, msg.duration);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading chat history:', error);
+        }
 
         function setLoading(isLoading) {
             loadingIndicator.style.display = isLoading ? 'block' : 'none';
@@ -353,12 +376,12 @@
             e.preventDefault();
             const message = messageInput.value.trim();
             const model = modelSelect.value;
-            // Convert actual newlines to \n for API
             const systemPrompt = document.getElementById('system-prompt-text').value.replace(/\n/g, '\\n');
             if (!message) return;
 
-            // Add user message to chat
+            // Add user message to chat and history
             addMessage('user', message);
+            conversationHistory.push({ role: 'user', content: message });
             messageInput.value = '';
             
             // Show loading indicator
@@ -374,7 +397,7 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ 
-                        message, 
+                        messages: conversationHistory,
                         model,
                         systemPrompt,
                         options: {
@@ -390,7 +413,23 @@
                 const data = await response.json();
                 // Calculate duration
                 const duration = performance.now() - startTime;
-                addMessage('assistant', data.choices[0].message.content, data.usage, duration);
+
+                // Add assistant's response to history
+                const assistantMessage = data.choices[0].message;
+                conversationHistory.push({
+                    role: assistantMessage.role,
+                    content: assistantMessage.content
+                });
+
+                // Add message to UI with usage stats
+                addMessage('assistant', assistantMessage.content, data.usage, duration);
+
+                // Save to localStorage
+                try {
+                    localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
+                } catch (error) {
+                    console.error('Error saving chat history:', error);
+                }
             } catch (error) {
                 console.error('Error:', error);
                 addMessage('assistant', 'Sorry, there was an error processing your request.');
@@ -518,6 +557,42 @@
             content.classList.toggle('expanded');
             toggle.textContent = content.classList.contains('expanded') ? '▲' : '▼';
         }
+
+        // Add event listener for input keydown
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                if (!e.shiftKey) {
+                    e.preventDefault();
+                    if (messageInput.value.trim()) {
+                        chatForm.dispatchEvent(new Event('submit'));
+                    }
+                }
+            }
+            
+            // Auto-resize the textarea
+            setTimeout(() => {
+                messageInput.style.height = 'auto';
+                messageInput.style.height = Math.min(messageInput.scrollHeight, 200) + 'px';
+            }, 0);
+        });
+
+        // Auto-resize on input
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+        });
+
+        // Add clear chat button
+        const controlsDiv = document.querySelector('.controls');
+        const clearButton = document.createElement('button');
+        clearButton.textContent = 'Clear Chat';
+        clearButton.style.alignSelf = 'flex-end';
+        clearButton.onclick = () => {
+            chatHistory.innerHTML = '';
+            conversationHistory = [];
+            localStorage.removeItem('chatHistory');
+        };
+        controlsDiv.appendChild(clearButton);
     </script>
 </body>
 </html> 

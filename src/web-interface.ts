@@ -56,14 +56,18 @@ app.get('/api/models', (async (req: Request, res: Response) => {
 
 app.post('/api/chat', (async (req: Request, res: Response) => {
     try {
-        const { message, model, options, systemPrompt } = req.body;
-        const response = await client.createChatCompletion([
+        const { messages, model, options, systemPrompt } = req.body;
+        
+        // Ensure messages is an array and prepend the system message
+        const conversationMessages = [
             { 
                 role: 'system', 
                 content: systemPrompt || defaultSystemPrompt
             },
-            { role: 'user', content: message }
-        ], { ...options, model });
+            ...messages // Include the full conversation history
+        ];
+
+        const response = await client.createChatCompletion(conversationMessages, { ...options, model });
         res.json(response);
     } catch (error) {
         console.error('Error:', error);
