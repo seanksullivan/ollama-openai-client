@@ -11,6 +11,11 @@ dist/
 build/
 *.tsbuildinfo
 
+# PDF processing output
+src/pdf-tools/output/
+src/pdf-tools/output/**/*
+src/pdf-tools/pdfs/**/*
+
 # Environment variables
 .env
 .env.local
