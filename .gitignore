@@ -16,6 +16,16 @@ src/pdf-tools/output/
 src/pdf-tools/output/**/*
 src/pdf-tools/pdfs/**/*
 
+# Embeddings output
+embeddings/
+embeddings-output/
+*.json
+*.csv
+!package.json
+!package-lock.json
+!tsconfig.json
+!jest.config.js
+
 # Environment variables
 .env
 .env.local
