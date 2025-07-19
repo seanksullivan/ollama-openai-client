@@ -2,6 +2,11 @@
 
 A command-line tool for processing PDF files into text chunks for RAG (Retrieval-Augmented Generation) applications. This tool helps you extract, process, and manage text from PDFs with configurable chunk sizes and various processing options.
 
+## Prerequisites
+
+- Node.js (v18 or higher)
+- npm or yarn package manager
+
 ## Features
 
 - **Single PDF Processing**: Process individual PDF files with customizable chunk sizes
@@ -114,7 +119,7 @@ process-pdf get-chunks ./document.pdf --max-chunk-size 2000
 
 | Option | Description | Default | Example |
 |--------|-------------|---------|---------|
-| `--max-chunk-size <number>` | Maximum characters per chunk | 1000 | `--max-chunk-size 2500` |
+| `--max-chunk-size <number>` | Maximum characters per chunk | 10000 | `--max-chunk-size 2500` |
 | `--overlap <number>` | Characters to overlap between chunks | 200 | `--overlap 100` |
 | `--chunk-strategy <strategy>` | Chunking strategy: 'characters' or 'words' | 'characters' | `--chunk-strategy words` |
 | `--max-words-per-chunk <number>` | Maximum words per chunk (word strategy) | 150 | `--max-words-per-chunk 200` |
@@ -203,9 +208,9 @@ The tool supports two chunking strategies:
 ### Chunk Size Guidelines
 
 #### Character-Based Guidelines
-- **Small chunks (500-1000 chars)**: Good for precise retrieval, more chunks to manage
-- **Medium chunks (1000-2000 chars)**: Balanced approach, good for most use cases
-- **Large chunks (2000-3000 chars)**: Better context, fewer chunks, good for long-form content
+- **Small chunks (1000-3000 chars)**: Good for precise retrieval, more chunks to manage
+- **Medium chunks (3000-5000 chars)**: Balanced approach, good for most use cases
+- **Large chunks (5000-10000 chars)**: Better context, fewer chunks, good for long-form content
 
 #### Word-Based Guidelines
 - **Small chunks (50-100 words)**: Good for precise retrieval, more semantic units

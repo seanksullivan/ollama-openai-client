@@ -2,6 +2,13 @@
 
 This project now includes RAG capabilities that allow the AI to query a Pinecone vector database for relevant documents before generating responses.
 
+## Prerequisites
+
+- Node.js (v18 or higher)
+- Ollama installed and running locally
+- A model pulled in Ollama (e.g., llama2)
+- Pinecone account and API credentials
+
 ## Features
 
 - **Toggle RAG**: Enable/disable RAG functionality with a simple checkbox
@@ -19,19 +26,42 @@ Add these to your `.env` file:
 PINECONE_API_KEY=your_pinecone_api_key
 PINECONE_ENVIRONMENT=your_pinecone_environment
 OLLAMA_API_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=llama2
+SYSTEM_PROMPT=You are a helpful, concise, and professional AI assistant.
 ```
 
 ### 2. Install Dependencies
 
 ```bash
-npm install @pinecone-database/pinecone
+npm install
 ```
+
+The project includes these RAG-related dependencies:
+- `@pinecone-database/pinecone`: Pinecone vector database client
+- `@chroma-core/default-embed`: Embedding generation
+- `chromadb`: Alternative vector database support
+- `pdf-parse`: PDF document processing
 
 ### 3. Build and Start
 
 ```bash
 npm run build
 npm run dev
+```
+
+### 4. CLI Tools (Optional)
+
+After building, you can use the included CLI tools for document management:
+
+```bash
+# Initialize a Pinecone index
+npx pinecone-cli init --index-name my-docs --dimension 768
+
+# Upload documents from a directory
+npx pinecone-cli upsert-directory --index-name my-docs --directory ./documents
+
+# Query the index
+npx pinecone-cli query --index-name my-docs --query "search term" --top-k 5
 ```
 
 ## Usage
@@ -50,10 +80,10 @@ npm run dev
 1. **Upload Documents to Pinecone**:
    ```bash
    # Initialize index
-   pinecone-cli init --index-name my-docs --dimension 768
+   npx pinecone-cli init --index-name my-docs --dimension 768
    
    # Upload documents
-   pinecone-cli upsert-directory --index-name my-docs --directory ./documents
+   npx pinecone-cli upsert-directory --index-name my-docs --directory ./documents
    ```
 
 2. **Use RAG in Web Interface**:
@@ -146,10 +176,10 @@ The system gracefully handles various error conditions:
 
 ### Automated Testing
 ```bash
-node test-rag.js
+npm test
 ```
 
-This will test both RAG-enabled and regular requests.
+This will run the test suite including RAG functionality tests.
 
 ## Troubleshooting
 
@@ -160,7 +190,7 @@ This will test both RAG-enabled and regular requests.
    - Verify `PINECONE_API_KEY` and `PINECONE_ENVIRONMENT` are set
 
 2. **"Index not found"**
-   - Create the index first: `pinecone-cli init --index-name your-index`
+   - Create the index first: `npx pinecone-cli init --index-name your-index`
    - Check the index name in the RAG configuration
 
 3. **"No relevant documents found"**
@@ -254,9 +284,9 @@ DEBUG=rag,pinecone npm run dev
 
 The RAG functionality integrates seamlessly with existing tools:
 
-- **PDF Processing**: Use `process-pdf` to chunk PDFs, then upload to Pinecone
-- **Embeddings**: Use `create-embeddings` to generate embeddings for custom documents
-- **Pinecone CLI**: Use `pinecone-cli` for index management and document uploads
+- **PDF Processing**: Use `npx process-pdf` to chunk PDFs, then upload to Pinecone
+- **Embeddings**: Use `npx create-embeddings` to generate embeddings for custom documents
+- **Pinecone CLI**: Use `npx pinecone-cli` for index management and document uploads
 
 ## Future Enhancements
 

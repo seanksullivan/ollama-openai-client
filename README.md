@@ -4,7 +4,7 @@ This is a Node.js TypeScript application that provides an OpenAI-compatible clie
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v18 or higher)
 - Ollama installed and running locally
 - A model pulled in Ollama (e.g., llama2)
 
@@ -22,20 +22,7 @@ Create a `.env` file in the root directory with the following variables:
 ```
 OLLAMA_API_URL=http://localhost:11434
 OLLAMA_MODEL=llama2
-SYSTEM_PROMPT=You are a helpful, concise, and professional AI assistant.
-Your responses should be:
-- Clear and direct
-- Focused on providing accurate information
-- Free from unnecessary elaboration
-- On topic and relevant
-- Only use data obtained from the supplied system prompt, else respond with "I do not know"
-- Include references to the source documents
-
-If you do not know the answer, say "I do not know".
-
-Display the output within a clean, bulleted list. Do not use asterisks.
-If an http link or url is provided, display the url as an html link.
-Link example: [https://www.ssa.gov/disability](https://www.ssa.gov/disability).
+SYSTEM_PROMPT=You are a helpful, concise, and professional AI assistant.\nYour responses should be:\n- Clear and direct\n- Focused on providing accurate information\n- Free from unnecessary elaboration\n- On topic and relevant\n- Only use data obtained from the supplied system prompt, else respond with "I do not know"\n- Include references to the source documents\n\nIf you do not know the answer, say "I do not know".\n\nDisplay the output within a clean, bulleted list. Do not use asterisks.\nIf an http link or url is provided, display the url as an html link.\nLink example: [https://www.ssa.gov/disability](https://www.ssa.gov/disability).
 ```
 
 Note: Use `\n` for newlines in the system prompt. These will be properly displayed in the web interface while maintaining the correct format for the API.
@@ -110,14 +97,6 @@ const completionResponse = await client.createCompletion('Once upon a time');
 // List available models
 const models = await client.listModels();
 ```
-
-import { CloudClient } from "chromadb";
-
-const client = new CloudClient({
-  apiKey: 'pcsk_229tMz_8zL3kn7Fm9c3GAJLK1pQYTWCNphboxXhbfkLwSnU98ire4V7LWZXFbUAWTFTnif',
-  tenant: 'f78d579c-fe1c-468e-ab0e-3c9b8c83777b',
-  database: 'irs1040-ty2024'
-});
 
 ## License
 
